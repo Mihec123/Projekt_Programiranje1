@@ -4,11 +4,6 @@ import sys
 import re
 import csv
 
-
-leta = [i for i in range(1968,2016)]
-regularni1 = r'href="(/en/scores/archive/\w+-?\w*/\d+/\d+/results)"'
-regularni2 = r'href=("/en/tournaments/\w+-?\w+?-?\w+?-?\w+?-?\w+?/\d+/\d+/match-stats/\w\d+/\w\d+/live/\w+\d+/match-stats")>'
-regularni3 = r'(?:\d+ ){2,5}'
 def shrani(url, ime_datoteke, vsili_prenos=False):
     '''Vsebino strani na danem naslovu shrani v datoteko z danim imenom.'''
     try:
@@ -88,33 +83,49 @@ def vsota_rezultat(seznam):
 
     return pomozn_sez
 
-for leto in leta:
-    url = "http://www.atpworldtour.com"
-    shrani("http://www.atpworldtour.com/en/scores/results-archive?year={}".format(str(leto)),"leto {}.txt".format(str(leto)))
-    sez = najdi(vsebina_datoteke("leto {}.txt".format(leto)),regularni1)
+def uredi_rezultat(sez):
+    pomozn_sez=[]
     for el in sez:
-        pot = re.findall(r"en/scores/archive/(?P<turnir>\w+-?\w+)/(?P<neki>\d+)/(?P<leto>\d+)",el)
-        shrani(url + el, r"C:/Users/Miha/Desktop/projekt/turnirji" + r"/" + pot[0][0] + r"/" + pot[0][1] + r"/"  + pot[0][2] + r"/" + "/results.txt")
-        
+        a = re.findall(r'(\d+)(?:\s|<sup>)', el, re.DOTALL)
+        niz = ""
+        for el1 in a:
+            niz += str(el1)
+        pomozn_sez.append(niz)
+    return pomozn_sez
+
+#######################################################################################################################
+
+leta = [i for i in range(1968,2016)]
 podatki, igralci_slovar, turnirji = {}, {}, {}
 indeks = 0
 indeks_igralca = 0
 indeks_turnirja = 0
-for subdir, dirs, files in os.walk(r"C:/Users/Miha/Desktop/projekt/turnirji/"):
+pot_shranjevanja = r"C:/Users/Miha/Desktop/projekt/turnirji/"
+
+for leto in leta:
+    url = "http://www.atpworldtour.com"
+    shrani("http://www.atpworldtour.com/en/scores/results-archive?year={}".format(str(leto)),"leto {}.txt".format(str(leto)))
+    sez = najdi(vsebina_datoteke("leto {}.txt".format(leto)),r'href="(/en/scores/archive/\w+-?\w*/\d+/\d+/results)"')
+    for el in sez:
+        pot = re.findall(r"en/scores/archive/(?P<turnir>\w+-?\w+)/(?P<neki>\d+)/(?P<leto>\d+)",el)
+        shrani(url + el, pot_shranjevanja + r"/" + pot[0][0] + r"/" + pot[0][1] + r"/"  + pot[0][2] + r"/" + "/results.txt")       
+
+for subdir, dirs, files in os.walk(pot_shranjevanja):
     for file in files:
-        b = os.path.join(subdir, file)
-        ime = re.findall(r"turnirji/(.*?)\\",str(b),re.DOTALL)[0]
-        leto = re.findall(r"\d+\d+",str(b),re.DOTALL)[1]
-        podlaga_s = re.findall(r'\s(Grass|Hard|Clay|Carpet)\s', vsebina_datoteke(b), re.DOTALL)
+        pot_dat = os.path.join(subdir, file)
+        ime = re.findall(r"turnirji/(.*?)\\",pot_dat,re.DOTALL)[0]
+        leto = re.findall(r"\d+\d+",pot_dat,re.DOTALL)[1]
+        podlaga_s = re.findall(r'\s(Grass|Hard|Clay|Carpet)\s', vsebina_datoteke(pot_dat), re.DOTALL)
         podlaga = podlaga_s[0].strip()
-        igralci = re.findall(r'<td class="day-table-name">\s+.*?>(.*?)</a>', vsebina_datoteke(b), re.DOTALL)
+        igralci = re.findall(r'<td class="day-table-name">\s+.*?>(.*?)</a>', vsebina_datoteke(pot_dat), re.DOTALL)
         for igralec in igralci:
             if igralec in igralci_slovar:
                 pass
             else:
                 igralci_slovar[igralec] = {"ime":igralec,"id":indeks_igralca}
                 indeks_igralca += 1
-        rezultat = re.findall(r'(?:\d+ ){2,5}', vsebina_datoteke(b), re.DOTALL)
+        rezultat1 = re.findall(r'match-stats">\s+(.*?)</a>', vsebina_datoteke(pot_dat), re.DOTALL)
+        rezultat = uredi_rezultat(rezultat1)
         stevec = 0
         for igra in rezultat:
             if stevec < (len(igralci) - 1):
