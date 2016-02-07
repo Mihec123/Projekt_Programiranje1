@@ -101,7 +101,6 @@ indeks = 0
 indeks_igralca = 0
 indeks_turnirja = 0
 pot_shranjevanja = r"C:/Users/Miha/Desktop/projekt/turnirji/"
-
 for leto in leta:
     url = "http://www.atpworldtour.com"
     shrani("http://www.atpworldtour.com/en/scores/results-archive?year={}".format(str(leto)),"leto {}.txt".format(str(leto)))
@@ -126,6 +125,9 @@ for subdir, dirs, files in os.walk(pot_shranjevanja):
                 indeks_igralca += 1
         rezultat1 = re.findall(r'match-stats">\s+(.*?)</a>', vsebina_datoteke(pot_dat), re.DOTALL)
         rezultat = uredi_rezultat(rezultat1)
+        if rezultat == []:
+            rezultat1 = re.findall(r'class="not-in-system " >\s+(.*?)</a>', vsebina_datoteke(pot_dat), re.DOTALL)
+            rezultat = uredi_rezultat(rezultat1)
         stevec = 0
         for igra in rezultat:
             if stevec < (len(igralci) - 1):
@@ -139,7 +141,6 @@ for subdir, dirs, files in os.walk(pot_shranjevanja):
                     podatki[indeks]={"turnir":turnirji[ime]["id"],"leto":leto,"st_iger":sum(vsota_rezultat(igra)),"podlaga":podlaga,"zmagovalec":igralci_slovar[igralci[stevec]]["id"],"porazenec":igralci_slovar[igralci[stevec + 1]]["id"]}
                     indeks += 1
                     stevec += 2
-
 
     
 zapisi_tabelo(podatki.values(), ["turnir","leto","podlaga","st_iger","zmagovalec","porazenec"], "podatki.csv")
